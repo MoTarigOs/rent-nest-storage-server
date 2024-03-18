@@ -1,24 +1,24 @@
 const jwt = require('jsonwebtoken');
-const { checkWhiteListAccessToken } = require('../utils/logic.js');
+const { checkWhiteListAccessToken } = require('../utils/logic');
 
 const verifyJWT = async(req, res, next) => {
 
-    console.log('verifing jwt');
+    try {
 
-    if(!req?.cookies || !req?.cookies?._r_t)
-        return res.status(401).json({ message: "Login" });
+        console.log('verifing jwt');
 
-    if(!req.cookies?._a_t)
-        return res.status(401).json({ message: "jwt expired" });
+        if(!req?.cookies || !req?.cookies?._r_t)
+            return res.status(401).json({ message: "Login" });
 
-    const token = req.cookies._a_t;
+        if(!req.cookies?._a_t)
+            return res.status(401).json({ message: "jwt expired" });
 
-    jwt.verify(
-        token,
-        process.env.ACCESS_TOKEN_SECRET,
-        async (err, decoded) => {
+        const token = req.cookies._a_t;
 
-            try {
+        jwt.verify(
+            token,
+            process.env.ACCESS_TOKEN_SECRET,
+            async (err, decoded) => {
 
                 if(err) return res.status(401).json({ message: "jwt expired" }); //forbidden due to invalid token
 
@@ -34,13 +34,13 @@ const verifyJWT = async(req, res, next) => {
 
                 next();
 
-            } catch (err) {
-                console.log(err);
-                return res.status(501).json({ message: 'unknown error' });
             }
-            
-        }
-    );
+        );
+
+    } catch (err) {
+        console.log(err);
+        return res.status(501).json({ message: 'unknown error' });
+    }
 };
 
 module.exports = verifyJWT;
