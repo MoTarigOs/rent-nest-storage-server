@@ -3,19 +3,19 @@ const app = express();
 require('dotenv').config();
 var cors = require('cors');
 const mongoose = require('mongoose');
-const connectDB = require('./Config/dbConnection');
-const PORT = process.env.PORT;
+const connectDB = require('./Config/dbConnection.js');
+const PORT = process.env.PORT || 5500;
 const cookieParser = require('cookie-parser');
 
 connectDB();
-app.use(cors({ origin: 'http://localhost:3000', credentials: true, allowedHeaders: ['Content-Type', 'Authorization', 'authorization'] }));
+app.use(cors({ origin: '*', credentials: true, allowedHeaders: ['Content-Type', 'Authorization', 'authorization'] }));
 app.use(express.urlencoded({ extended: false })); 
 app.use(express.json({ limit: "50mb" }));
 app.use(cookieParser());
 
 
-app.use('/upload', require('./Routers/UploadRouter'));
-app.use('/download', require('./Routers/DownloadRouter'));
+app.use('/upload', require('./Routers/UploadRouter.js'));
+app.use('/download', require('./Routers/DownloadRouter.js'));
 
 
 //handle errors & exceptions, with logger

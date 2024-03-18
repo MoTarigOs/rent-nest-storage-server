@@ -1,4 +1,4 @@
-const WL = require('../Data/WhiteList');
+const WL = require('../Data/WhiteList.js');
 
 const checkWhiteListAccessToken = async (email, accessToken) => {
     try{

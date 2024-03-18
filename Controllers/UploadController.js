@@ -1,5 +1,5 @@
 const { default: mongoose } = require("mongoose");
-const Property = require('../Data/PropertyModel');
+const Property = require('../Data/PropertyModel.js');
 
 const uploadSucceed = (req, res) => {
     console.log(req.files.toString());
