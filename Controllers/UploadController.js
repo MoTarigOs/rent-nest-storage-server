@@ -1,10 +1,5 @@
 const { default: mongoose } = require("mongoose");
-const Property = require('../Data/PropertyModel');
-
-const uploadSucceed = (req, res) => {
-    console.log(req.files.toString());
-    return res.status(201).json({ message: 'successfully uploaded' });
-};
+const Property = require('../Data/PropertyModel.js');
 
 const validPropertyId = async(req, res, next) => {
 
@@ -27,14 +22,6 @@ const validPropertyId = async(req, res, next) => {
 
     if(!property || property.owner_id.toString() !== id) return res.status(403).json({ message: 'access error' });
     
-    next();
-
-};
-
-const validVehicleId = async(req, res, next) => {
-
-    //check if the property exist and the owner is the requester
-
     next();
 
 };
@@ -79,20 +66,7 @@ const uploadedPropertyFiles = async(req, res, next) => {
 
 };
 
-const uploadedVehicleFiles = async(req, res, next) => {
-
-    //handle after upload for property
-
-    return res.status(201).json({ message: 'succefully upload property images' });
-
-};
-
-
-
 module.exports = {
-    uploadSucceed,
     validPropertyId,
-    validVehicleId,
     uploadedPropertyFiles,
-    uploadedVehicleFiles
 }
