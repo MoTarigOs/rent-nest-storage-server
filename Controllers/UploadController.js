@@ -7,20 +7,23 @@ const validPropertyId = async(req, res, next) => {
 
     console.log('checking for valid property id: ', req.params.propertyId);
 
-    if(!req || !req.user || !req.params) return res.status(403).json({ message: 'request error' });
+    //|| !req.user
 
-    const { id } = req.user;
+    if(!req || !req.params) return res.status(403).json({ message: 'request error' });
+
+    //const { id } = req.user;
 
     const { propertyId } = req.params;
 
-    if(!mongoose.Types.ObjectId.isValid(id) || !mongoose.Types.ObjectId.isValid(propertyId))
+    //!mongoose.Types.ObjectId.isValid(id) || 
+    if(!mongoose.Types.ObjectId.isValid(propertyId))
         return res.status(403).json({ message: 'request error' });
 
     const property = await Property.findOne({ _id: propertyId }).select('owner_id');
 
     console.log('property: ', property);
 
-    if(!property || property.owner_id.toString() !== id) return res.status(403).json({ message: 'access error' });
+    if(!property) return res.status(403).json({ message: 'access error' });
     
     next();
 
