@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const { validPropertyId, uploadedPropertyFiles } = require('../Controllers/UploadController.js');
-const verifyJWT = require('../Middleware/VerifyJWT.js');
+const verifyJWT = require('../Middleware/VerifyJWTMD.js');
 
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
