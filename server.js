@@ -8,7 +8,7 @@ const PORT = process.env.PORT || 5500;
 const cookieParser = require('cookie-parser');
 
 connectDB();
-app.use(cors({ origin: '*', credentials: true, allowedHeaders: ['Content-Type', 'Authorization', 'authorization'] }));
+app.use(cors({ origin: 'https://rent-nest-site.vercel.app', credentials: true, allowedHeaders: ['Content-Type', 'Authorization', 'authorization'] }));
 app.use(express.urlencoded({ extended: false })); 
 app.use(express.json({ limit: "50mb" }));
 app.use(cookieParser());
