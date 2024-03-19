@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const { validPropertyId, uploadedPropertyFiles } = require('../Controllers/UploadController.js');
-const verifyJWT = require('../Middleware/VerifyJWTMD.js');
+//const verifyJWT = require('../Middleware/VerifyJWTMD.js');
 
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
@@ -17,6 +17,6 @@ const upload = multer({
     storage: storage,
 });
 
-router.post('/property/:propertyId', verifyJWT, validPropertyId, upload.array('FilesForUpload', 25), uploadedPropertyFiles);
+router.post('/property/:propertyId', validPropertyId, upload.array('FilesForUpload', 25), uploadedPropertyFiles);
 
 module.exports = router;
