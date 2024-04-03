@@ -11,4 +11,8 @@ router.post('/property-specific-files/:propertyId', verifyJWT, deletePropertySpe
 
 router.delete('/multiple-properties-files', verifyJWT, deleteMultiplePropertiesFiles);
 
+router.get('/test-jwt', verifyJWT, (req, res) => {
+    res.status(200).json({ message: 'successfully verify jwt' });
+});
+
 module.exports = router;
