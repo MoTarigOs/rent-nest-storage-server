@@ -6,9 +6,10 @@ const mongoose = require('mongoose');
 const connectDB = require('./Config/dbConnection.js');
 const PORT = process.env.PORT || 5500;
 const cookieParser = require('cookie-parser');
+const verifyJWT = require('./Middleware/VerifyJWTMD.js');
 
 connectDB();
-app.use(cors({ origin: 'https://rent-nest-site.vercel.app', credentials: true, allowedHeaders: ['Content-Type', 'Authorization', 'authorization'] }));
+app.use(cors({ origin: process.env.ALLOWED_ORIGIN, credentials: true, allowedHeaders: ['Content-Type', 'Authorization', 'authorization'] }));
 app.use(express.urlencoded({ extended: false })); 
 app.use(express.json({ limit: "50mb" }));
 app.use(cookieParser());
@@ -16,6 +17,11 @@ app.use(cookieParser());
 
 app.use("/upload", require("./Routers/UploadRouter.js"));
 app.use("/download", require("./Routers/DownloadRouter.js"));
+app.use("/delete", require("./Routers/DeleteRouter.js"));
+app.use("/admin", require("./Routers/AdminRouter.js"));
+app.use("/test", verifyJWT, (req, res) => {
+    res.status(200).json({ message: 'tested successfully' });
+});
 
 
 //handle errors & exceptions, with logger

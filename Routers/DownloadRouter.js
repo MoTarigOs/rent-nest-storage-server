@@ -26,8 +26,8 @@ router.get('/:filename', (req, res) => {
         res.end(img, 'binary');    
 
     } catch (err) {
-        console.log(err);
-        return res.status(501).json({ message: 'unknown error' });
+        console.log(err.message);
+        return res.status(501).json({ message: 'not exist error' });
     }
 
 });
