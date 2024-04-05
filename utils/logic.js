@@ -82,12 +82,26 @@ const isValidText = (text, minLength) => {
     return true;
 };
 
+const isValidEmail = (email) => {
+
+    if(!email || typeof email !== "string" || email.length < 5 || email.length > 30) return false;
+
+    const regexPattern = /^([a-zA-Z0-9._%-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{1,})$/;
+
+    if(!regexPattern.test(email))
+      return false;
+  
+    return true;
+
+};
+
 module.exports = {
     checkWhiteListAccessToken,
     arrayLimitSchema,
     isValidFilename,
     getValidFilename,
     isValidText,
+    isValidEmail,
     maxVideoSize,
     maxStorageSize,
     maxImageSize

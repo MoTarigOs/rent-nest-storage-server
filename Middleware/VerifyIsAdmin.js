@@ -1,22 +1,47 @@
-const asyncHandler = require("express-async-handler");
-const User = require('../Data/UserModel');
-const { default: mongoose } = require("mongoose");
+const VerCode = require('../Data/VerificationCode.js');
+const User = require('../Data/UserModel.js');
+const { isValidEmail } = require('../utils/logic.js');
+const { default: mongoose } = require('mongoose');
 
-const verifyAdmin = asyncHandler( async(req, res, next) => {
+const verifyAdmin = async(req, res, next) => {
 
-    if(!req?.user) return res.status(400).json({ message: 'request error' });
+    const key = req?.headers?.authorization?.split(' ')?.at(1);
 
-    const { id } = req.user;
+    const email = req?.query?.email;
 
-    if(!id || !mongoose.Types.ObjectId.isValid(id))
-        return res.status(400).json({ message: 'request error' });
+    if(!key || key === 'Bearer' || key.length < 10 || !isValidEmail(email))
+        return res.status(401).json({ message: 'request error' });
 
-    const user = await User.findOne({ _id: id, role: ['admin', 'owner'] });
-    
-    if(!user) return res.status(403).json({ message: 'not allowed error' });
+    try {
 
-    next();
+        const verCode = await VerCode.findOneAndUpdate({ storage_key: key, email, storage_key_attempts: { $lte: 500 } }, {
+            $inc: { storage_key_attempts: 1 }
+        });
 
-});
+        if(!verCode || !verCode.storage_key_date) return res.status(403).json({ message: 'not exist error' });
+        
+        if((Date.now() - verCode.storage_key_date) > (8 * 60 * 60 * 1000))
+            return res.status(403).json({ message: 'time out error' });
+
+        const id = key.split('-')?.at(1);
+
+        console.log('id: ', id);
+        
+        if(!mongoose.Types.ObjectId.isValid(id))
+            return res.status(401).json({ message: 'request error' });
+
+        const user = await User.findOne({ _id: id, email, role: ['admin', 'owner'] })
+            .select('_id role');
+        
+        if(!user) return res.status(403).json({ message: 'not allowed error' });
+
+        next();
+
+    } catch (err) {
+        console.log(err.message);
+        return res.status(500).json({ message: 'server error' });
+    }
+
+};
 
 module.exports = verifyAdmin;

@@ -12,9 +12,17 @@ const VerCodeSchema = mongoose.Schema({
         minlength: 6
     },
     date: {
-        type: Number,
-        required: [true, "Error in our server"]
+        type: Number
     },
+    storage_key: {
+        type: String,
+        maxlength: 100,
+        unique: [true, 'storage key error']
+    },
+    storage_key_date: {
+        type: Number
+    },
+    storage_key_attempts: { type: Number, max: 30, default: 0 },
     attempts: { type: Number, max: 30, default: 0 }
 }, { timestamps: true });
 

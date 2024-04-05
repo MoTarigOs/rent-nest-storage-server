@@ -1,41 +1,33 @@
-const jwt = require('jsonwebtoken');
-const { checkWhiteListAccessToken } = require('../utils/logic.js');
-const asyncHandler = require('express-async-handler');
+const VerCode = require('../Data/VerificationCode.js');
+const { isValidEmail } = require('../utils/logic.js');
 
-const verifyJWT = asyncHandler(async(req, res, next) => {
+const verifyJWT = async(req, res, next) => {
 
-    console.log('verifing jwt');
+    const key = req?.headers?.authorization?.split(' ')?.at(1);
 
-    if(!req?.cookies || !req?.cookies?._r_t)
-        return res.status(401).json({ message: "Login" });
+    const email = req?.query?.email;
 
-    if(!req.cookies?._a_t)
-        return res.status(401).json({ message: "jwt expired" });
+    if(!key || key === 'Bearer' || key.length < 10 || !isValidEmail(email))
+        return res.status(401).json({ message: 'request error' });
 
-    const token = req.cookies._a_t;
+    try {
 
-    jwt.verify(
-        token,
-        process.env.ACCESS_TOKEN_SECRET,
-        async (err, decoded) => {
+        const verCode = await VerCode.findOneAndUpdate({ storage_key: key, email, storage_key_attempts: { $lte: 500 } }, {
+            $inc: { storage_key_attempts: 1 }
+        });
 
-            if(err) return res.status(401).json({ message: "jwt expired" }); //forbidden due to invalid token
+        if(!verCode || !verCode.storage_key_date) return res.status(403).json({ message: 'not exist error' });
+        
+        if((Date.now() - verCode.storage_key_date) > (8 * 60 * 60 * 1000))
+            return res.status(403).json({ message: 'time out error' });
 
-            req.user = decoded.user;
+        next();
 
-            req.token_exp = decoded.exp - decoded.iat;
+    } catch (err) {
+        console.log(err.message);
+        return res.status(500).json({ message: 'server error' });
+    }
 
-            const userEmail = req.user.email;
-            const allowed = await checkWhiteListAccessToken(userEmail, token);
-
-            if(!allowed || allowed === false)
-                return res.status(401).json({ message: "jwt expired" });
-
-            next();
-
-        }
-    );
-
-});
+};
 
 module.exports = verifyJWT;
