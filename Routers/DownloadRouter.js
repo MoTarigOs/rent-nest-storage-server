@@ -27,7 +27,7 @@ router.get('/:filename', (req, res) => {
 
     } catch (err) {
         console.log(err.message);
-        return res.status(501).json({ message: 'not exist error' });
+        return res.status(404).json({ message: 'not exist error' });
     }
 
 });

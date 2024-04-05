@@ -24,16 +24,18 @@ const verifyAdmin = async(req, res, next) => {
             return res.status(403).json({ message: 'time out error' });
 
         const id = key.split('-')?.at(1);
-
-        console.log('id: ', id);
         
         if(!mongoose.Types.ObjectId.isValid(id))
             return res.status(401).json({ message: 'request error' });
 
         const user = await User.findOne({ _id: id, email, role: ['admin', 'owner'] })
-            .select('_id role');
+            .select('_id username');
         
         if(!user) return res.status(403).json({ message: 'not allowed error' });
+
+        req.user = {
+            id, email, username: user.username
+        };
 
         next();
 
