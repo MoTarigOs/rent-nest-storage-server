@@ -106,23 +106,30 @@ const uploadedPropertyFiles = async(req, res, next) => {
 
     };
 
-    if(imagesNames.length <= 0 && videosNames.length <= 0) return res.status(501).json({ message: 'unknown error' });
+    if(imagesNames.length <= 0 && videosNames.length <= 0) return res.status(500).json({ message: 'unknown error' });
 
-    const property = await Property.updateOne({ _id: propertyId, owner_id: id }, { 
-        images: imagesNames, 
-        videos: videosNames, 
-        files_details: { 
-            total_size: req.uploadedFilesTotalSize, 
-            no: imagesNames.length + videosNames.length 
-        }
-    });
+    try {
 
-    console.log('updateOne function return: ', property);
-
-    if(!property || property.modifiedCount < 1 || property.acknowledged === false) 
-        return res.status(501).json({ message: 'unknown error' });
-
-    return res.status(201).json({ message: 'succefully upload property images' });
+        const property = await Property.updateOne({ _id: propertyId, owner_id: id }, { 
+            images: imagesNames, 
+            videos: videosNames, 
+            files_details: { 
+                total_size: req.uploadedFilesTotalSize, 
+                no: imagesNames.length + videosNames.length 
+            }
+        });
+    
+        console.log('updateOne function return: ', property);
+    
+        if(!property || property.modifiedCount < 1 || property.acknowledged === false) 
+            return res.status(501).json({ message: 'unknown error' });
+    
+        return res.status(201).json({ message: 'succefully upload property images' });
+        
+    } catch (err) {
+        console.log(err);
+        return res.status(500).json({ message: 'server error' });
+    }
 
 };
 
@@ -195,17 +202,24 @@ const addPropertyFiles = async(req, res, next) => {
         }
     };
 
-    const property = await Property.findOneAndUpdate(
-        { _id: propertyId, owner_id: req.user.id }, 
-        { ...pushObj, checked: false },
-        { new: true }
-    );
+    try {
 
-    console.log('updateOne function return: ', property);
-
-    if(!property) return res.status(501).json({ message: 'unknown error' });
-
-    return res.status(201).json(property);
+        const property = await Property.findOneAndUpdate(
+            { _id: propertyId, owner_id: req.user.id }, 
+            { ...pushObj, checked: false },
+            { new: true }
+        );
+    
+        console.log('updateOne function return: ', property);
+    
+        if(!property) return res.status(501).json({ message: 'unknown error' });
+    
+        return res.status(201).json(property);
+        
+    } catch (err) {
+        console.log(err);
+        return res.status(500).json({ message: 'server error' });
+    }
 
 };
 

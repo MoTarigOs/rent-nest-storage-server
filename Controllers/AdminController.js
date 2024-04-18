@@ -4,7 +4,7 @@ const Property = require('../Data/PropertyModel.js');
 const VerCode = require('../Data/VerificationCode.js');
 const mongoose = require('mongoose');
 const { getFolderSize, getFolderSizeBin } = require('go-get-folder-size');
-const { isValidFilename, isValidText } = require('../utils/logic.js');
+const { isValidFilename, isValidText, reportDeleteFailureFile } = require('../utils/logic.js');
 
 const deletePropertyFilesAdmin = async(req, res) => {
 
@@ -29,7 +29,9 @@ const deletePropertyFilesAdmin = async(req, res) => {
         try {
             await fs.unlink(path.join(__dirname, '..', 'uploads', property.images[i]));
         } catch(err) {
-            // nothing to catch, just ignore because file doesn't exist
+            if(err.code !== 'ENOENT'){
+                await reportDeleteFailureFile(property[i].images[i], err, 'AdminController.js, function deletePropertyFilesAdmin, tried fs.unlink(image)');
+            }
         }
     };
 
@@ -37,7 +39,9 @@ const deletePropertyFilesAdmin = async(req, res) => {
         try {
             await fs.unlink(path.join(__dirname, '..', 'uploads', property.videos[i]));
         } catch (err) {
-            // nothing to catch, just ignore because file doesn't exist
+            if(err.code !== 'ENOENT'){
+                await reportDeleteFailureFile(property[i].images[i], err, 'AdminController.js, function deletePropertyFilesAdmin, tried fs.unlink(video)');
+            }
         }
     };
 
@@ -111,14 +115,22 @@ const deleteMultiplePropertiesFilesAdmin = async(req, res) => {
             for (let j = 0; j < properties[i].images.length; j++) {
                 try {
                     await fs.unlink(path.join(__dirname, '..', 'uploads', properties[i].images[j]));
-                } catch(err) {}
+                } catch(err) {
+                    if(err.code !== 'ENOENT'){
+                        await reportDeleteFailureFile(properties[i].images[j], err, 'AdminController.js, function deleteMultiplePropertiesFilesAdmin, tried fs.unlink(image)');
+                    }
+                }
             }
         }
         if(properties[i]?.videos){
             for (let j = 0; j < properties[i].videos.length; j++) {
                 try {
                     await fs.unlink(path.join(__dirname, '..', 'uploads', properties[i].videos[j]));
-                } catch (err) {}
+                } catch (err) {
+                    if(err.code !== 'ENOENT'){
+                        await reportDeleteFailureFile(properties[i].videos[j], err, 'AdminController.js, function deleteMultiplePropertiesFilesAdmin, tried fs.unlink(video)');
+                    }
+                }
             }
         }
         if(properties[i]?.images?.length > 0 || properties[i]?.videos?.length > 0)
@@ -140,61 +152,79 @@ const deleteMultiplePropertiesFilesAdmin = async(req, res) => {
 
 const deletePropertySpecificFilesAdmin = async(req, res) => {
 
-    try {
+    if(!req || !req.params || !req.body) 
+        return res.status(403).json({ message: 'request error' });
 
-        console.log('filenames: ', req.body.filenamesArray);
+    const { propertyId } = req.params;
 
-        if(!req || !req.params || !req.body) return res.status(403).json({ message: 'request error' });
+    const { filenamesArray } = req.body;
 
-        const { propertyId } = req.params;
+    if(!mongoose.Types.ObjectId.isValid(propertyId))
+        return res.status(403).json({ message: 'request error' });
 
-        const { filenamesArray } = req.body;
+    if(!filenamesArray || filenamesArray.length <= 0) return res.status(403).json({ message: 'filename error' });
+
+    for (let i = 0; i < filenamesArray.length; i++) {
+        if(!isValidFilename(filenamesArray[i])){
+            filenamesArray.splice(i, 1);
+        }
+    };
+
+    if(filenamesArray.length <= 0) return res.status(403).json({ message: 'filename error' });
     
-        if(!mongoose.Types.ObjectId.isValid(propertyId))
-            return res.status(403).json({ message: 'request error' });
+    let property;
 
-        if(!filenamesArray || filenamesArray.length <= 0) return res.status(403).json({ message: 'filename error' });
+    try {
+        property = await Property.findOne({ _id: propertyId })
+        .select('_id images videos');
+    } catch (err) {
+        console.log(err);
+        return res.status(500).json({ message: 'server error' });
+    }
 
-        for (let i = 0; i < filenamesArray.length; i++) {
-            if(!isValidFilename(filenamesArray[i])){
-                filenamesArray.splice(i, 1);
-            }
-        };
+    if(!property) return res.status(403).json({ message: 'success error' });
 
-        if(filenamesArray.length <= 0) return res.status(403).json({ message: 'filename error' });
-        
-        const property = await Property.findOne({ _id: propertyId })
-            .select('_id images videos');
-
-        if(!property) return res.status(403).json({ message: 'success error' });
-
-        console.log('prop: ', property);
-
-        let deletedSize = 0;
-        const imagesToPull = [];
-        const videosToPull = [];
-        for (let k = 0; k < filenamesArray.length; k++) {
-            if(path.extname(filenamesArray[k]) === '.png' || path.extname(filenamesArray[k]) === '.jpg'){
-                for (let i = 0; i < property.images.length; i++) {
-                    if(property.images[i] === filenamesArray[k]){
+    let deletedSize = 0;
+    const imagesToPull = [];
+    const videosToPull = [];
+    for (let k = 0; k < filenamesArray.length; k++) {
+        if(path.extname(filenamesArray[k]) === '.png' || path.extname(filenamesArray[k]) === '.jpg'){
+            for (let i = 0; i < property.images.length; i++) {
+                if(property.images[i] === filenamesArray[k]){
+                    try {
                         deletedSize += (await fs.stat(path.join(__dirname, '..', 'uploads', property.images[i]))).size
                         await fs.unlink(path.join(__dirname, '..', 'uploads', property.images[i]));
                         imagesToPull.push(property.images[i]);
+                    } catch (err) {
+                        console.log(err);
+                        if(err.code !== 'ENOENT'){
+                            await reportDeleteFailureFile(property.images[i], err, 'AdminController.js, function deletePropertySpecificFilesAdmin, tried fs.stat(image)');
+                        }
                     }
-                };
-            } else if(path.extname(filenamesArray[k]) === '.mp4' || path.extname(filenamesArray[k]) === '.avi'){
-                for (let i = 0; i < property.videos.length; i++) {
-                    if(property.videos[i] === filenamesArray[k]){
+                }
+            };
+        } else if(path.extname(filenamesArray[k]) === '.mp4' || path.extname(filenamesArray[k]) === '.avi'){
+            for (let i = 0; i < property.videos.length; i++) {
+                if(property.videos[i] === filenamesArray[k]){
+                    try {
                         deletedSize += (await fs.stat(path.join(__dirname, '..', 'uploads', property.videos[i]))).size
                         await fs.unlink(path.join(__dirname, '..', 'uploads', property.videos[i]));
                         videosToPull.push(property.videos[i]);
+                    } catch (err) {
+                        console.log(err);
+                        if(err.code !== 'ENOENT'){
+                            await reportDeleteFailureFile(property.videos[i], err, 'AdminController.js, function deletePropertySpecificFilesAdmin, tried fs.stat(video)');
+                        }
                     }
-                };
-            }
+                }
+            };
         }
-        
-        if(deletedSize <= 0 || (imagesToPull.length <= 0 && videosToPull.length <= 0)) 
-            return res.status(400).json({ message: 'request error' });
+    }
+    
+    if(deletedSize <= 0 || (imagesToPull.length <= 0 && videosToPull.length <= 0)) 
+        return res.status(400).json({ message: 'request error' });
+
+    try {
 
         const newProp = await Property.findOneAndUpdate({ _id: propertyId }, {
             $pull: { 
@@ -206,15 +236,15 @@ const deletePropertySpecificFilesAdmin = async(req, res) => {
                 'files_details.no': -(imagesToPull.length + videosToPull.length)
             }
         }, { new: true });
-
+    
         if(!newProp) return res.status(500).json({ message: 'server error' });
-
+    
         return res.status(201).json(newProp);
-        
+
     } catch (err) {
-        console.log(err.message);
-        return res.status(501).json({ message: err.message });
-    }
+        console.log(err);
+        return res.status(500).json({ message: 'server error' });
+    }        
 
 };
 
@@ -226,6 +256,8 @@ const deleteFileAdmin = async(req, res) => {
 
         const { filename } = req.params;
 
+        console.log(filename);
+
         if(!isValidFilename(filename)) return res.status(400).json({ message: 'name error' });
 
         await fs.unlink(path.join(__dirname, '..', 'uploads', filename));
@@ -234,7 +266,7 @@ const deleteFileAdmin = async(req, res) => {
         
     } catch (err) {
         console.log(err.message);
-        return res.status(501).json({ message: err.message });
+        return res.status(500).json({ message: err.message });
     }
 
 };
@@ -244,6 +276,8 @@ const getFolderSizeAdmin = async(req, res) => {
     try {
 
         const size = await getFolderSizeBin(path.join(__dirname, '..', 'uploads'));
+
+        console.log('storage size: ', size);
 
         return res.status(200).json({ size });
         
@@ -257,6 +291,8 @@ const getAllFilenamesAdmin = async(req, res) => {
 
 
     try {
+
+        console.log('files reached');
 
         const files = await fs.readdir('./uploads');
 

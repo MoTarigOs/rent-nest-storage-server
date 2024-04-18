@@ -1,7 +1,8 @@
 const WL = require('../Data/WhiteList.js');
 const path = require('path');
-const allowedFilenameChar = 'ABCDEFGHIJKLMNOPQRSTUVWYZabcdefghijklmnopqrstuvwyz0123456789-_';
-
+const ErrorModel = require('../Data/ErrorModel.js');
+const allowedFilenameChar = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_.';
+const givenSet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789abcdefghijklmnopqrstuvwxyz";
 const maxVideoSize = 128000000;
 const maxStorageSize = maxVideoSize + 10000000;
 const maxImageSize = 1054000;
@@ -30,11 +31,27 @@ const arrayLimitSchema = (val) => {
     return val.length <= 30;
 };
 
+const getExtension = (file) => {
+
+    if(file?.split('')?.reverse()?.join('')?.split('.')?.at(0)?.split('')?.reverse()?.join('') === 'png'
+        || file?.split('')?.reverse()?.join('')?.split('.')?.at(0)?.split('')?.reverse()?.join('') === 'jpg') 
+        return 'img';
+
+    if(file?.split('')?.reverse()?.join('')?.split('.')?.at(0)?.split('')?.reverse()?.join('') === 'mp4'
+        || file?.split('')?.reverse()?.join('')?.split('.')?.at(0)?.split('')?.reverse()?.join('') === 'avi') 
+        return 'video';
+
+    return null;    
+        
+};
+
 const isValidFilename = (filename) => {
+
+    if(!getExtension(filename)) return false;
 
     for (let i = 0; i < filename.length; i++) {
         if(!allowedFilenameChar.includes(filename[i])){
-            //return false;
+            return false;
         }
     }
 
@@ -95,6 +112,41 @@ const isValidEmail = (email) => {
 
 };
 
+// const generateRandomCode = () => {
+
+//     let code = "";
+//     for(let i = 0; i < 6; i++) {
+//         const pos = Math.floor(Math.random()*givenSet.length);
+//         code += givenSet[pos];
+//     }
+//     return code;
+
+// };
+
+
+const reportDeleteFailureFile = async(filename, err, stack) => {
+
+    // report an error occured while deleting a file
+
+    const obj = {};
+
+    if(isValidText(filename)) obj.filename = filename;
+
+    obj.code = err.code;
+    
+    obj.stack = stack;
+
+    try {
+        await ErrorModel.create({ 
+            isStorageError: true,
+            storage_err: obj
+        });
+    } catch (err) {
+        console.log(err);
+    }
+    
+};
+
 module.exports = {
     checkWhiteListAccessToken,
     arrayLimitSchema,
@@ -102,6 +154,7 @@ module.exports = {
     getValidFilename,
     isValidText,
     isValidEmail,
+    reportDeleteFailureFile,
     maxVideoSize,
     maxStorageSize,
     maxImageSize
