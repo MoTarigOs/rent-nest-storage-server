@@ -79,7 +79,7 @@ const scanFiles = async(req, res, next) => {
         next();
 
     } catch (err) {
-        console.log(err.message);
+        console.log(err);
         for (let i = 0; i < req.files.length; i++) {
             await fs.unlink(path.join(__dirname, '..', 'uploads', req.files[i].filename))
         }

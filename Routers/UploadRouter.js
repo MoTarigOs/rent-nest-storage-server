@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const path = require('path');
 const multer = require('multer');
 const { addPropertyFiles, validPropertyIdForAdd } = require('../Controllers/UploadController.js');
 const scanFiles = require('../Middleware/ScanUploadedFiles.js');
@@ -8,11 +9,12 @@ const { getValidFilename, maxVideoSize, maxStorageSize } = require('../utils/log
 
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-      cb(null, 'uploads/'); // Destination folder for uploaded files
+      console.log('dest: ', path.join(__dirname, '..', 'uploads'));
+      cb(null, path.join(__dirname, '..', 'uploads')); // Destination folder for uploaded files
     },
     filename: (req, file, cb) => {
       console.log('multer file: ', file);
-      cb(null, Date.now() + '-' + getValidFilename(file.originalname.replaceAll(' ', '-')));
+      cb(null, Date.now() + '-' + getValidFilename(file?.originalname?.replaceAll(' ', '-')));
     },
 });
 
@@ -45,12 +47,12 @@ router.post('/property/:propertyId', verifyJWT, validPropertyIdForAdd, function 
   upload(req, res, function (err) {
     if (err instanceof multer.MulterError) {
       // A Multer error occurred when uploading.
-      console.log(err.message);
-      return res.status(501).json({ message: 'upload error'});
+      console.log('upload error: ', err);
+      return res.status(500).json({ message: 'upload error'});
     } else if (err) {
       // An unknown error occurred when uploading.
-      console.log(err.message);
-      return res.status(501).json({ message: 'unknown error'});
+      console.log('server error: ', err);
+      return res.status(500).json({ message: 'unknown error'});
     }
     // Everything went fine.
     next();
