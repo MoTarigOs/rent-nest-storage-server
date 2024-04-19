@@ -52,7 +52,7 @@ router.post('/property/:propertyId', verifyJWT, validPropertyIdForAdd, function 
     } else if (err) {
       // An unknown error occurred when uploading.
       console.log('server error: ', err);
-      return res.status(500).json({ message: 'unknown error'});
+      return res.status(500).json({ message: 'server error'});
     }
     // Everything went fine.
     next();
