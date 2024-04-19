@@ -9,11 +9,11 @@ const { getValidFilename, maxVideoSize, maxStorageSize } = require('../utils/log
 
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-      console.log('dest: ', path.join(__dirname, '..', 'uploads'));
-      cb(null, path.join(__dirname, '..', 'uploads')); // Destination folder for uploaded files
+      console.log('---------- dest');
+      cb(null, 'uploads/'); // Destination folder for uploaded files
     },
     filename: (req, file, cb) => {
-      console.log('multer file: ', file);
+      console.log('---------- multer file: ', file);
       cb(null, Date.now() + '-' + getValidFilename(file?.originalname?.replaceAll(' ', '-')));
     },
 });
