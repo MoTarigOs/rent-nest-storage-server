@@ -18,7 +18,7 @@
     "express-async-handler": "^1.2.0",
     "go-get-folder-size": "^0.5.4",
     "jsonwebtoken": "^9.0.2",
-    "mongoose": "^8.2.1",
+    "mongoose": "^8.2.4",
     "multer": "^1.4.5-lts.1"
   }
 }
