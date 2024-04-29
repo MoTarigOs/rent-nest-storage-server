@@ -6,6 +6,7 @@ const givenSet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789abcdefghijklmnopqrstuvwxyz
 const maxVideoSize = 128000000;
 const maxStorageSize = maxVideoSize + 10000000;
 const maxImageSize = 1054000;
+const isScan = false; // very dangerous! , must be true to scan viruses and bad files.
 
 const checkWhiteListAccessToken = async (email, accessToken) => {
     try{
@@ -77,24 +78,21 @@ const getValidFilename = (thisName) => {
 
 };
 
+const isOkayText = s => (!/[^\u0600-\u06FF\u0020-\u0040\u005B-\u0060\u007B-\u007E-\u0000-\u007F]/.test(s));
+
 const isValidText = (text, minLength) => {
 
     if(!minLength && (!text || typeof text !== "string" || text.length <= 0)) return false;
 
     if(minLength && (!text || typeof text !== "string" || text.length < minLength)) return false;
 
-    // for (let i = 0; i < text.length; i++) {
+    if(!isOkayText(text)) return false;
 
-    //     let passed = false;
+    const notAllowedTextChars = ['<', '>', '&','/','"',"'", '`'];
 
-    //     for (let j = 0; j < testChars.length; j++) {
-    //         if(text[i] === testChars[j]) 
-    //             passed = true;
-    //     }
-
-    //     if(!passed) return false;
-
-    // };
+    for (let i = 0; i < notAllowedTextChars.length; i++) {
+      if(text.includes(notAllowedTextChars[i])) return false;
+    };
     
     return true;
 };
@@ -111,18 +109,6 @@ const isValidEmail = (email) => {
     return true;
 
 };
-
-// const generateRandomCode = () => {
-
-//     let code = "";
-//     for(let i = 0; i < 6; i++) {
-//         const pos = Math.floor(Math.random()*givenSet.length);
-//         code += givenSet[pos];
-//     }
-//     return code;
-
-// };
-
 
 const reportDeleteFailureFile = async(filename, err, stack) => {
 
@@ -157,5 +143,6 @@ module.exports = {
     reportDeleteFailureFile,
     maxVideoSize,
     maxStorageSize,
-    maxImageSize
+    maxImageSize,
+    isScan
 }

@@ -1,35 +1,32 @@
 const fs = require('fs').promises;
 const path = require('path');
-// const NodeClam = require('clamscan');
-// const ClamScan = new NodeClam().init({
-//     removeInfected: false, // If true, removes infected files
-//     quarantineInfected: false, // False: Don't quarantine, Path: Moves files to this place.
-//     scanLog: null, // Path to a writeable log file to write scan results into
-//     debugMode: false, // Whether or not to log info/debug/error msgs to the console
-//     fileList: null, // path to file containing list of files to scan (for scanFiles method)
-//     scanRecursively: true, // If true, deep scan folders recursively
-//     clamscan: {
-//         path: '/usr/bin/clamscan', // Path to clamscan binary on your server
-//         db: null, // Path to a custom virus definition database
-//         scanArchives: true, // If true, scan archives (ex. zip, rar, tar, dmg, iso, etc...)
-//         active: true // If true, this module will consider using the clamscan binary
-//     },
-//     clamdscan: {
-//         socket: false, // Socket file for connecting via TCP
-//         host: false, // IP of host to connect to TCP interface
-//         port: false, // Port of host to use when connecting via TCP interface
-//         timeout: 60000, // Timeout for scanning files
-//         localFallback: true, // Use local preferred binary to scan if socket/tcp fails
-//         path: '/usr/bin/clamdscan', // Path to the clamdscan binary on your server
-//         configFile: null, // Specify config file if it's in an unusual place
-//         multiscan: true, // Scan using all available cores! Yay!
-//         reloadDb: false, // If true, will re-load the DB on every call (slow)
-//         active: true, // If true, this module will consider using the clamdscan binary
-//         bypassTest: false, // Check to see if socket is available when applicable
-//         tls: false, // Use plaintext TCP to connect to clamd
-//     },
-//     preference: 'clamdscan' // If clamdscan is found and active, it will be used by default
-// });
+const { isScan } = require('../utils/logic');
+const clamscanConfig = {
+    removeInfected: true, // If true, removes infected files
+    quarantineInfected: false, // False: Don't quarantine, Path: Moves files to this place.
+    scanLog: null, // Path to a writeable log file to write scan results into
+    debugMode: true, // Whether or not to log info/debug/error msgs to the console
+    fileList: null, // path to file containing list of files to scan (for scanFiles method)
+    scanRecursively: true, // If true, deep scan folders recursively
+    clamdscan: {
+      path: 'C:/ClamAV/clamd.exe', // Path to clamscan binary on your server
+      db: null, // Path to a custom virus definition database
+      scanArchives: true, // If true, scan archives (ex. zip, rar, tar, dmg, iso, etc...)
+      active: true, // If true, this module will consider using the clamscan binary
+      configFile: 'C:/ClamAV/clamd.conf',
+      socket: 'C:/ClamAV/clamd.conf', // This is pretty typical
+      host: '127.0.0.1', // If you want to connect locally but not through socket
+      port: 3310, // Because, why not
+      timeout: 300000, // 5 minutes
+      localFallback: false, // Do no fail over to binary-method of scanning
+      multiscan: false, // You hate speed and multi-threaded awesome-sauce
+      reloadDb: false, // You want your scans to run slow like with clamscan
+      bypassTest: false, // Don't check to see if socket is available. You should probably never set this to true.
+      tls: true, // Connect to clamd over TLS
+    },
+    preference: 'clamdscan' // If clamdscan is found and active, it will be used by default
+};
+const NodeClam = isScan ? require('clamscan') : null;
 
 const scanFiles = async(req, res, next) => {
     
@@ -40,6 +37,8 @@ const scanFiles = async(req, res, next) => {
             using these libraries and softwares: clamdscan, ffmpeg.
         */
 
+        const clamscan = isScan ? await new NodeClam().init(clamscanConfig) : null;
+
         console.log('scanning files: ', req.files);
 
         let filesList = [];
@@ -47,19 +46,24 @@ const scanFiles = async(req, res, next) => {
             filesList.push(path.join(__dirname, '..', 'uploads', req.files[i].filename));
         };
 
-        if(filesList.length <= 0) return res.status(501).json({ message: 'not exist error' });
+        if(filesList.length <= 0) return res.status(400).json({ message: 'not exist error' });
 
-        // const { goodFiles, badFiles, errors, viruses } = await ClamScan.scanFiles(filesList);
-        const badFiles = [];
-        const errors = null;
+        const { goodFiles, badFiles, errors, viruses } = isScan 
+            ? await clamscan.scanFiles(filesList) 
+            : { goodFiles: null, badFiles: [], errors: null, viruses: null };
+
+        if(viruses) {}
 
         if(errors) {
-            console.log(err.message);
-            return res.status(501).json({ message: 'unknown error' });
-        }
-
-        if(badFiles && badFiles.length > 0){
-            for (let i = 0; i < badFiles.length; i++) {
+            console.log(errors);
+            for (let i = 0; i < req.files.length; i++) {
+                try {
+                    await fs.unlink(path.join(__dirname, '..', 'uploads', req.files[i].filename));
+                } catch (err) {}
+            }
+            return res.status(500).json({ message: 'server error' });
+        } else if(badFiles && badFiles.length > 0){
+            for (let i = 0; i < req.files; i++) {
                 await fs.unlink(path.join(__dirname, '..', 'uploads', badFiles[i]));
             };
         }
@@ -81,9 +85,11 @@ const scanFiles = async(req, res, next) => {
     } catch (err) {
         console.log(err);
         for (let i = 0; i < req.files.length; i++) {
-            await fs.unlink(path.join(__dirname, '..', 'uploads', req.files[i].filename))
+            try {
+                await fs.unlink(path.join(__dirname, '..', 'uploads', req.files[i].filename));
+            } catch (err) {}
         }
-        return res.status(501).json({ message: 'server error' });
+        return res.status(500).json({ message: 'server error' });
     }
 
 };

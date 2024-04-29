@@ -88,7 +88,7 @@ const deletePropertySpecificFile = async(req, res) => {
 
     } catch (err) {
         console.log(err.message);
-        return res.status(501).json({ message: err.message });
+        return res.status(500).json({ message: err.message });
     }
    
     if(!property) return res.status(403).json({ message: 'success error' });
@@ -230,8 +230,8 @@ const deletePropertySpecificFiles = async(req, res) => {
             };
         }
     }
-    
-    if(deletedSize <= 0 || (imagesToPull.length <= 0 && videosToPull.length <= 0)) 
+
+    if(imagesToPull.length <= 0 && videosToPull.length <= 0) 
         return res.status(400).json({ message: 'request error' });
 
     try {
