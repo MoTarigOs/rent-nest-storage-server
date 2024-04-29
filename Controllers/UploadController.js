@@ -212,7 +212,7 @@ const addPropertyFiles = async(req, res, next) => {
     
         console.log('updateOne function return: ', property);
     
-        if(!property) return res.status(501).json({ message: 'unknown error' });
+        if(!property) return res.status(500).json({ message: 'unknown error' });
     
         return res.status(201).json(property);
         
