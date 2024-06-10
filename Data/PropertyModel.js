@@ -55,6 +55,7 @@ const propertyShema = mongoose.Schema({
     description: {
         type: String,
         maxLength: 4000,
+        index: 'text',
         required: [true, "desc error"]
     },
     city: {
@@ -66,21 +67,35 @@ const propertyShema = mongoose.Schema({
     neighbourhood: {
         type: String,
         maxLength: 100,
-        default: ''
+        default: '',
+        index: 'text'
     },
     map_coordinates: {
         type: [Number],
         validate: [arrayLimitSchema, 'limit array error']
     },
-    price: {
+    price: { // delete this field
         type: Number,
         min: 1,
         max: 1000000000000000,
         required: [true, "price error"]
     },
+    prices: {
+        daily: Number,
+        weekly: Number,
+        monthly: Number,
+        seasonly: Number,
+        yearly: Number,
+    },
+    unit_code: {
+        type: Number,
+        unique: [true, 'unit code error'],
+        sparse: true
+    },
+    vehicle_type: Number,
     customer_type: { type: String },
     capacity: { type: Number },
-    cancellation: { type: String },
+    cancellation: { type: Number },
     images: { 
         type: [{
             type: String,
@@ -103,22 +118,27 @@ const propertyShema = mongoose.Schema({
     },
     details: {
         insurance: { type: Boolean, default: false },
-        guest_rooms: { type: [{ type: String, maxLength: 500 }], default: [], validate: [arrayLimitSchema, 'array limit error'] },
+        guest_rooms: { type: [{ capacity: Number }], default: [], validate: [arrayLimitSchema, 'array limit error'] },
+        bathrooms: { array: { type: [{ dim: { x: Number, y: Number } }], default: [], validate: [arrayLimitSchema, 'array limit error'] }, companians: { type: [{ type: String, maxLength: 500 }], default: [], validate: [arrayLimitSchema, 'array limit error'] } },
+        kitchen: { array: { type: [{ dim: { x: Number, y: Number } }], default: [], validate: [arrayLimitSchema, 'array limit error'] }, companians: { type: [{ type: String, maxLength: 500 }], default: [], validate: [arrayLimitSchema, 'array limit error'] } },
+        rooms: { type: [{ capacity: Number, single_beds: Number, double_beds: Number }], default: [], validate: [arrayLimitSchema, 'array limit error'] },
+        pool: { array: { type: [{ dim: { x: Number, y: Number }, depth: Number }], default: [], validate: [arrayLimitSchema, 'array limit error'] }, companians: { type: [{ type: String, maxLength: 500 }], default: [], validate: [arrayLimitSchema, 'array limit error'] } },
         facilities: { type: [{ type: String, maxLength: 500 }], default: [], validate: [arrayLimitSchema, 'array limit error'] },
-        bathrooms: { num: Number, companians: { type: [{ type: String, maxLength: 500 }], default: [], validate: [arrayLimitSchema, 'array limit error'] } },
-        kitchen: { dim: { x: Number, y: Number }, companians: { type: [{ type: String, maxLength: 500 }], default: [], validate: [arrayLimitSchema, 'array limit error'] } },
-        rooms: { num: String, single_beds: String, double_beds: String },
-        pool: { num: String, dim: { x: String, y: String }, companians: { type: [{ type: String, maxLength: 500 }], default: [], validate: [arrayLimitSchema, 'array limit error'] } },
-        vehicle_specifications: { type: [{ type: String, maxLength: 500 }], default: [], validate: [arrayLimitSchema, 'array limit error'] },
-        vehicle_addons: { type: [{ type: String, maxLength: 500 }], default: [], validate: [arrayLimitSchema, 'array limit error'] },
+        pool: { num: Number, dim: { x: Number, y: Number }, companians: { type: [{ type: String, maxLength: 500 }], default: [], validate: [arrayLimitSchema, 'array limit error'] } },
+        vehicle_specifications: {
+            driver: Boolean, rent_type: String,
+            company: String, model: String, color: String,
+            year: Number, gearbox: String, fuel_type: String
+        },
+        features: { type: [{ type: String, maxLength: 500 }], default: [], validate: [arrayLimitSchema, 'array limit error'] },
         near_places: { type: [{ type: String, maxLength: 500 }], default: [], validate: [arrayLimitSchema, 'array limit error'] },
     },
     en_data: {
         english_details: { type: [{ enName: String, arName: String }], default: [], validate: [arrayLimitSchema, 'array limit error'] },
         customerTypeEN: { type: String },
-        titleEN: { type: String, maxLength: 250 },
-        descEN: { type: String, maxLength: 4000 },
-        neighbourEN: { type: String, maxLength: 100 }
+        titleEN: { type: String, maxLength: 250, index: 'text' },
+        descEN: { type: String, maxLength: 4000, index: 'text' },
+        neighbourEN: { type: String, maxLength: 100, index: 'text' }
     },
     terms_and_conditions: { 
         type: [{
@@ -133,7 +153,8 @@ const propertyShema = mongoose.Schema({
             writer_id: { type: mongoose.Types.ObjectId },
             username: { type: String },
             text: { type: String, maxLength: 500 },
-            user_rating: { type: Number, maxLength: 5 }
+            user_rating: { type: Number, max: 5 },
+            updatedAt: Date
         }],
         default: [],
         validate: [arrayLimitSchema, 'array limit error']
@@ -145,6 +166,8 @@ const propertyShema = mongoose.Schema({
     area: {
         type: Number, max: 10000000000
     },
+    landArea: Number,
+    floor: String,
     discount: {
         num_of_days_for_discount: { type: Number, max: 2000, default: 0 },
         percentage: { type: Number, max: 100, min: 0, default: 0 },
@@ -186,7 +209,10 @@ const propertyShema = mongoose.Schema({
 }, { timestamps: true }).index({ 
     'title' : 'text', 
     'description' : 'text',
-    'neighbourhood': 'text'
+    'neighbourhood': 'text',
+    'en_data.titleEN': 'text',
+    'en_data.descEN': 'text',
+    'en_data.neighbourEN': 'text'
 });
 
 module.exports = mongoose.model('Property', propertyShema);

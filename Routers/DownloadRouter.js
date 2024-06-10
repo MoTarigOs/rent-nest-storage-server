@@ -3,7 +3,7 @@ const router = express.Router();
 const fs = require('fs');
 const path = require('path');
 
-router.get('/:filename', (req, res) => {
+router.get('/:filename', async(req, res) => {
 
     if(!req || !req.params) return res.status(400).json({ message: 'request error' });
 
@@ -18,8 +18,19 @@ router.get('/:filename', (req, res) => {
     };
 
     if(mimeType() === '-1') return res.status(400).json({ message: 'request error' });
-        
+
     try {
+
+        console.log('reached download');
+
+        // res.download(
+        //     path.join(__dirname, '..', 'uploads', filename), 
+        //     filename, // Remember to include file extension
+        //     (err) => {
+        //         if (err) {
+        //             res.status(200).send('');
+        //         }
+        // });
 
         var img = fs.readFileSync(path.join(__dirname, '..', 'uploads', filename));
         res.writeHead(200, {'Content-Type': mimeType() });
