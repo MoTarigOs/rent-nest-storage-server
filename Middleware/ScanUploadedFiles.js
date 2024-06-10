@@ -46,7 +46,7 @@ const scanFiles = async(req, res, next) => {
             filesList.push(path.join(__dirname, '..', 'uploads', req.files[i].filename));
         };
 
-        if(filesList.length <= 0) return res.status(400).json({ message: 'not exist error' });
+        if(filesList.length <= 0 && isScan) return res.status(400).json({ message: 'not exist error' });
 
         const { goodFiles, badFiles, errors, viruses } = isScan 
             ? await clamscan.scanFiles(filesList) 
