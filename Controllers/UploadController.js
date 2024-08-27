@@ -43,7 +43,7 @@ const validPropertyIdForAdd = async(req, res, next) => {
 
          //check if the property exist and the owner is the requester
 
-        console.log('checking for valid property id: ', req.params.propertyId);
+        console.log('checking for valid property id: ', req?.params?.propertyId);
 
         if(!req || !req.user || !req.params) return res.status(403).json({ message: 'request error' });
 

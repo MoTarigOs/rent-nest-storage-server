@@ -11,6 +11,7 @@ const tooBusy = require('toobusy-js');
 const helmet = require('helmet');
 const buildLogger = require('./Logger/ProdLogger.js');
 const scanFiles = require('./Middleware/ScanUploadedFiles.js');
+const verifyJWT = require('./Middleware/VerifyJWTMD.js');
 const logger = buildLogger();
 
 connectDB();
@@ -34,7 +35,7 @@ app.use("/download", require("./Routers/DownloadRouter.js"));
 app.use("/delete", require("./Routers/DeleteRouter.js"));
 app.use("/admin", require("./Routers/AdminRouter.js"));
 
-app.use("/test", async(req, res, next) => {
+app.use("/test", verifyJWT, async(req, res, next) => {
     req.files = [{ filename: 'test.jpg' }];
     next();
 }, scanFiles, (req, res) => {

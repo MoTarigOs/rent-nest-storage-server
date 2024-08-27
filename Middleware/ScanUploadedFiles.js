@@ -42,9 +42,10 @@ const scanFiles = async(req, res, next) => {
         console.log('scanning files: ', req.files);
 
         let filesList = [];
-        for (let i = 0; i < req.files.length; i++) {
-            filesList.push(path.join(__dirname, '..', 'uploads', req.files[i].filename));
-        };
+        if(isScan)
+            for (let i = 0; i < req.files?.length; i++) {
+                filesList.push(path.join(__dirname, '..', 'uploads', req.files[i].filename));
+            };
 
         if(filesList.length <= 0 && isScan) return res.status(400).json({ message: 'not exist error' });
 
@@ -58,7 +59,7 @@ const scanFiles = async(req, res, next) => {
             console.log(errors);
             for (let i = 0; i < req.files.length; i++) {
                 try {
-                    await fs.unlink(path.join(__dirname, '..', 'uploads', req.files[i].filename));
+                    await fs.unlink(path.join(__dirname, '..', 'uploads', req.files[i]?.filename));
                 } catch (err) {}
             }
             return res.status(500).json({ message: 'server error' });
@@ -70,13 +71,14 @@ const scanFiles = async(req, res, next) => {
 
         let totalSize = 0;
 
-        for (let i = 0; i < req.files.length; i++) {
-            if(badFiles.includes(req.files[i].filename)){
-                req.files[i] = null;
-            } else {
-                totalSize += req.files[i].size;
-            }
-        };
+        if(isScan && req?.files)
+            for (let i = 0; i < req.files?.length; i++) {
+                if(badFiles.includes(req.files[i]?.filename)){
+                    req.files[i] = null;
+                } else {
+                    totalSize += req.files[i]?.size;
+                }
+            };
 
         req.uploadedFilesTotalSize = totalSize;
 

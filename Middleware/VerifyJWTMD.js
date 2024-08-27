@@ -14,11 +14,13 @@ const verifyJWT = async(req, res, next) => {
 
     try {
 
+        const verCode2 = await VerCode.findOne({ email: email });
+
         const verCode = await VerCode.findOneAndUpdate({ storage_key: key, email, storage_key_attempts: { $lte: 500 } }, {
             $inc: { storage_key_attempts: 1 }
         });
 
-        if(!verCode || !verCode.storage_key_date) return res.status(403).json({ message: 'not exist error' });
+        if(!verCode || !verCode.storage_key_date) return res.status(403).json({ message: 'not exist error', dt: verCode2 });
         
         if((Date.now() - verCode.storage_key_date) > (8 * 60 * 60 * 1000))
             return res.status(403).json({ message: 'time out error' });

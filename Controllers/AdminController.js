@@ -4,7 +4,7 @@ const Property = require('../Data/PropertyModel.js');
 const VerCode = require('../Data/VerificationCode.js');
 const mongoose = require('mongoose');
 const { getFolderSize, getFolderSizeBin } = require('go-get-folder-size');
-const { isValidFilename, isValidText, reportDeleteFailureFile } = require('../utils/logic.js');
+const { isValidFilename, isValidText, reportDeleteFailureFile, maxStorageSize } = require('../utils/logic.js');
 
 const deletePropertyFilesAdmin = async(req, res) => {
 
@@ -304,11 +304,139 @@ const getAllFilenamesAdmin = async(req, res) => {
     }
 };
 
+const validPropertyIdForAddAdmin = async(req, res, next) => {
+
+    try {
+
+         //check if the property exist and the owner is the requester
+
+        console.log('checking for valid property id: ', req?.params?.propertyId);
+
+        if(!req || !req.params) return res.status(403).json({ message: 'request error' });
+
+        const { id } = req.user;
+
+        const { propertyId } = req.params;
+
+        if(!mongoose.Types.ObjectId.isValid(propertyId))
+            return res.status(403).json({ message: 'request error' });
+
+        const property = await Property.findOne({ _id: propertyId }).select('_id owner_id videos images files_details');
+
+        console.log('property: ', property);
+
+        if(!property) return res.status(403).json({ message: 'access error' });
+
+        if(property.files_details 
+            && (property.files_details?.total_size > maxStorageSize
+            || property.files_details?.no >= 50)){
+                return res.status(403).json({ message: 'storage limit error' });
+            };
+
+        next();
+            
+    } catch (err) {
+        console.log(err.message);
+        return res.status(501).json({ message: 'server error' });
+    }
+
+};
+
+const addPropertyFilesAdmin = async(req, res) => {
+
+    if(!req || !req.files) return res.status(400).json({ message: 'request error' });
+
+    const files = req.files;
+
+    console.log('files: ', files);
+
+    if(!files || files.length <= 0) return res.status(501).json({ message: 'unknown error' });
+
+    const { propertyId } = req.params;
+
+    if(!mongoose.Types.ObjectId.isValid(propertyId)) 
+        return res.status(400).json({ message: 'request error' });
+
+    let imagesNames = [];
+    let videosNames = [];
+    for (let i = 0; i < files.length; i++) {
+
+        if(files[i] && (files[i].mimetype === 'video/mp4' || files[i].mimetype === 'video/avi')) 
+            videosNames.push(files[i].filename);
+
+        if(files[i] && (files[i].mimetype === 'image/png' || files[i].mimetype === 'image/jpeg')) 
+            imagesNames.push(files[i].filename);
+
+    };
+
+    if(imagesNames.length <= 0 && videosNames.length <= 0) return res.status(501).json({ message: 'unknown error' });
+
+    let pushObj = {};
+    if(imagesNames.length > 0 && videosNames.length > 0){
+        pushObj = { 
+            $push: { 
+                images: { $each: imagesNames },
+                videos: { $each: videosNames }
+            }, 
+            $inc: {
+                'files_details.total_size': req.uploadedFilesTotalSize,
+                'files_details.no': imagesNames.length + videosNames.length
+            }
+            // files_details: { 
+            //     $inc: { total_size: req.uploadedFilesTotalSize }, 
+            //     $inc: { no: imagesNames.length + videosNames.length } 
+            // }
+        }
+    } else if(imagesNames.length > 0 && videosNames.length <= 0){
+        pushObj = { 
+            $push: { 
+                images: { $each: imagesNames }
+            }, 
+            $inc: {
+                'files_details.total_size': req.uploadedFilesTotalSize,
+                'files_details.no': imagesNames.length
+            }
+        }
+    } else if(videosNames.length > 0 && imagesNames.length <= 0){
+        pushObj = { 
+            $push: { 
+                videos: { $each: videosNames }
+            }, 
+            $inc: {
+                'files_details.total_size': req.uploadedFilesTotalSize,
+                'files_details.no': videosNames.length
+            }
+        }
+    };
+
+    try {
+
+        const property = await Property.findOneAndUpdate(
+            { _id: propertyId }, 
+            { ...pushObj },
+            { new: true }
+        );
+    
+        console.log('updateOne function return: ', property);
+    
+        if(!property) return res.status(500).json({ message: 'unknown error' });
+    
+        return res.status(201).json(property);
+        
+    } catch (err) {
+        console.log(err);
+        return res.status(500).json({ message: 'server error' });
+    }
+
+};
+
 module.exports = {
     deletePropertyFilesAdmin,
     deleteMultiplePropertiesFilesAdmin,
     deletePropertySpecificFilesAdmin,
     deleteFileAdmin,
     getFolderSizeAdmin,
-    getAllFilenamesAdmin
+    getAllFilenamesAdmin,
+    validPropertyIdForAddAdmin,
+    addPropertyFilesAdmin
 }
